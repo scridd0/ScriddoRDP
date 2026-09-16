@@ -17,42 +17,24 @@ jobs:
 
     steps:
 
-      - name: Configure Core RDP Settings
-
+            - name: Configure Core RDP Settings
+        shell: powershell
         run: |
+          # Enable Remote Desktop
+          Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 0 -Force
 
-          # Enable Remote Desktop and disable Network Level Authentication (if needed)
+          # Disable Network Level Authentication
+          Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name "UserAuthentication" -Value 0 -Force
 
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' `
+          # Set RDP security layer
+          Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name "SecurityLayer" -Value 0 -Force
 
-                             -Name "fDenyTSConnections" -Value 0 -Force
-
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' `
-
-                             -Name "UserAuthentication" -Value 0 -Force
-
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' `
-
-                             -Name "SecurityLayer" -Value 0 -Force
-
-
-          # Remove any existing rule with the same name to avoid duplication
-
+          # Allow RDP through Windows Firewall
           netsh advfirewall firewall delete rule name="RDP-Tailscale"
+          netsh advfirewall firewall add rule name="RDP-Tailscale" dir=in action=allow protocol=TCP localport=3389
 
-         
-
-          # For testing, allow any incoming connection on port 3389
-
-          netsh advfirewall firewall add rule name="RDP-Tailscale" `
-
-            dir=in action=allow protocol=TCP localport=3389
-
-
-          # (Optional) Restart the Remote Desktop service to ensure changes take effect
-
+          # Restart Remote Desktop service
           Restart-Service -Name TermService -Force
-
 
       - name: Create RDP User with Secure Password
 
